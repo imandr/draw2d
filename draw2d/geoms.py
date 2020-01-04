@@ -1,5 +1,5 @@
 import math
-from .attrs import Color
+from .attrs import Color, LineWidth
 from .transform import Transform
 
 try:
@@ -23,21 +23,31 @@ except ImportError as e:
     ''')
 
 class Geom(object):
-    def __init__(self, transform=None):
+    def __init__(self, transform=None, hidden=False):
         self._color=Color((0, 0, 0, 1.0))
         self.attrs = [self._color]
         self.transform = transform
+        self.hidden = hidden
+        
+    def hide(self):
+        self.hidden = True
+        return self
+    
+    def show(self):
+        self.hidden = False
+        return self
     
     def render(self):
-        for attr in reversed(self.attrs):
-            attr.enable()
-        if self.transform is not None:
-            with self.transform:
+        if not self.hidden:
+            for attr in reversed(self.attrs):
+                attr.enable()
+            if self.transform is not None:
+                with self.transform:
+                    self.render1()
+            else:
                 self.render1()
-        else:
-            self.render1()
-        for attr in self.attrs:
-            attr.disable()
+            for attr in self.attrs:
+                attr.disable()
     def render1(self):
         raise NotImplementedError
     def add_attr(self, attr):
@@ -53,26 +63,32 @@ class Geom(object):
         return self
         
     def move_to(self, *params):
+        if self.transform is None:  self.transform = Transform()
         self.transform.move_to(*params)
         return self
 
     def move_by(self, *params):
+        if self.transform is None:  self.transform = Transform()
         self.transform.move_by(*params)
         return self
 
     def rotate_by(self, *params):
+        if self.transform is None:  self.transform = Transform()
         self.transform.rotate_by(*params)
         return self
 
     def rotate_to(self, *params):
+        if self.transform is None:  self.transform = Transform()
         self.transform.rotate_to(*params)
         return self
         
     def scale_to(self, *params):
+        if self.transform is None:  self.transform = Transform()
         self.transform.scale_to(*params)
         return self
 
     def scale_by(self, *params):
+        if self.transform is None:  self.transform = Transform()
         self.transform.scale_by(*params)
         return self
 

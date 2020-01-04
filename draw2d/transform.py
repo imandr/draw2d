@@ -40,14 +40,14 @@ class Transform(Attr):
         return Transform()
         
     def enable(self):
-        print("%s: enable" % (self,))
+        #print("%s: enable" % (self,))
         glPushMatrix()
         glTranslatef(self.translation[0], self.translation[1], 0) # translate to GL loc ppint
         glRotatef(RAD2DEG * self.rotation, 0, 0, 1.0)
         glScalef(self.scale[0], self.scale[1], 1)
         
     def disable(self):
-        print("%s: disable" % (self,))
+        #print("%s: disable" % (self,))
         glPopMatrix()
 
     __enter__ = enable
@@ -87,30 +87,43 @@ class Transform(Attr):
         )
 
 class Frame(object):
-    def __init__(self, geoms=[], transform=None, **args):
+    def __init__(self, geoms=[], transform=None, hidden=False, **args):
         self.NamedGeoms = {}
         self.UnnamedGeoms = []
         self.transform = transform if transform is not None else Transform(**args)
+        self.hidden = hidden
         
     def __str__(self):
         return "<Frame: %s>" % (repr(self.transform),)
         
     __repr__ = __str__
 
-    def add(self, g, label=None):
+    def hide(self):
+        self.hidden = True
+        return self
+    
+    def show(self):
+        self.hidden = False
+        return self
+    
+    def add(self, g, label=None, at=None, rotation=None, scale=None):
         if label is None:
             self.UnnamedGeoms.append(g)
         else:
             self.NamedGeoms[label] = g
+        if at is not None:  g.move_to(*at)
+        if rotation is not None:    g.rotate_to(rotation)
+        if scale is not None:   g.scale_to(*scale)
         return self
             
     def __getitem__(self, label):
         return self.NamedGeoms[label]
     
     def render(self):
-        with self.transform:
-            for g in self.UnnamedGeoms + list(self.NamedGeoms.values()):
-                g.render()
+        if not self.hidden:
+            with self.transform:
+                for g in self.UnnamedGeoms + list(self.NamedGeoms.values()):
+                    g.render()
 
     def __getattr__(self, name):
         return getattr(self.transform, name)
