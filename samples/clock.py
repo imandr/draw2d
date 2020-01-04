@@ -15,7 +15,6 @@ for i in range(12):
     f = Frame()
     f.add(m, at=(0.0,1.0))
     f.rotate_by(a)
-    #print(i, f)
     frame.add(f)
 
 hour_hand = Rectangle(-0.02, 0.02, -0.02, 0.5).color(0,0,0)
