@@ -40,7 +40,6 @@ class Transform(Attr):
         return Transform()
         
     def enable(self):
-        #print("%s: enable" % (self,))
         glPushMatrix()
         glTranslatef(self.translation[0], self.translation[1], 0) # translate to GL loc ppint
         glRotatef(RAD2DEG * self.rotation, 0, 0, 1.0)
@@ -85,7 +84,19 @@ class Transform(Attr):
             rotation = self.rotation + other.rotation,
             scale = (self.scale[0]*other.scale[0], self.scale[1]*other.scale[1])
         )
-
+        
+    def apply(self, x, y, a):
+        x *= self.scale[0]
+        y *= self.scale[1]
+        s,c = math.sin(self.rotation), math.cos(self.rotation)
+        x, y = x*c - y*s, y*c + x*s
+        x += self.translation[0]
+        y += self.translation[1]
+        a += self.rotation
+        return x, y, a
+        
+    __call__ = apply
+        
 class Frame(object):
     def __init__(self, geoms=[], transform=None, hidden=False, **args):
         self.NamedGeoms = {}
@@ -118,12 +129,20 @@ class Frame(object):
             
     def __getitem__(self, label):
         return self.NamedGeoms[label]
-    
-    def render(self):
+        
+    def render(self, transforms=[]):
         if not self.hidden:
             with self.transform:
                 for g in self.UnnamedGeoms + list(self.NamedGeoms.values()):
-                    g.render()
+                    g.render(transforms+[self.transform])
+                        
+    def remove_all(self):
+        self.NamedGeoms = {}
+        self.UnnamedGeoms = []
+
+    def remove(self, label):
+        if label in self.NamedGeoms:
+            del self.NamedGeoms[label]
 
     def __getattr__(self, name):
         return getattr(self.transform, name)

@@ -47,7 +47,7 @@ def get_display(spec):
 
 
 class Viewer(object):
-    def __init__(self, width, height, display=None):
+    def __init__(self, width, height, display=None, clear_color=(0,0,0,1)):
         display = get_display(display)
 
         self.width = width
@@ -57,6 +57,7 @@ class Viewer(object):
         self.isopen = True
         self.geoms = []
         self.onetime_geoms = []
+        self.clear_color = clear_color
 
         glEnable(GL_BLEND)
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
@@ -79,7 +80,7 @@ class Viewer(object):
         self.onetime_geoms.append(geom)
 
     def render(self, return_rgb_array=False):
-        glClearColor(1,1,1,1)
+        glClearColor(*self.clear_color)
         self.window.clear()
         self.window.switch_to()
         self.window.dispatch_events()

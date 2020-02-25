@@ -2,6 +2,10 @@ import math
 from .attrs import Color, LineWidth
 from .transform import Transform
 
+RAD2DEG = 180.0/math.pi
+
+
+
 try:
     import pyglet
 except ImportError as e:
@@ -37,19 +41,25 @@ class Geom(object):
         self.hidden = False
         return self
     
-    def render(self):
+    def render(self, transforms=[]):
         if not self.hidden:
             for attr in reversed(self.attrs):
                 attr.enable()
+            t = transforms
             if self.transform is not None:
-                with self.transform:
-                    self.render1()
-            else:
-                self.render1()
+                self.transform.enable()
+                t = transforms + [self.transform]
+                
+            self.render1(t)
+
+            if self.transform is not None:
+                self.transform.disable()
             for attr in self.attrs:
                 attr.disable()
-    def render1(self):
+                
+    def render1(self, transforms):
         raise NotImplementedError
+
     def add_attr(self, attr):
         self.attrs.append(attr)
         return self
@@ -91,11 +101,12 @@ class Geom(object):
         if self.transform is None:  self.transform = Transform()
         self.transform.scale_by(*params)
         return self
-
+        
 class Point(Geom):
     def __init__(self):
         Geom.__init__(self)
-    def render1(self):
+        
+    def render1(self, transforms):
         glBegin(GL_POINTS) # draw point
         glVertex3f(0.0, 0.0, 0.0)
         glEnd()
@@ -104,7 +115,7 @@ class FilledPolygon(Geom):
     def __init__(self, v):
         Geom.__init__(self)
         self.v = v
-    def render1(self):
+    def render1(self, transforms):
         if   len(self.v) == 4 : glBegin(GL_QUADS)
         elif len(self.v)  > 4 : glBegin(GL_POLYGON)
         else: glBegin(GL_TRIANGLES)
@@ -119,7 +130,7 @@ class PolyLine(Geom):
         self.close = close
         self.linewidth = LineWidth(1)
         self.add_attr(self.linewidth)
-    def render1(self):
+    def render1(self, transforms):
         glBegin(GL_LINE_LOOP if self.close else GL_LINE_STRIP)
         for p in self.v:
             glVertex3f(p[0], p[1],0)  # draw each vertex
@@ -135,7 +146,7 @@ class Line(Geom):
         self.linewidth = LineWidth(1)
         self.add_attr(self.linewidth)
 
-    def render1(self):
+    def render1(self, transforms):
         glBegin(GL_LINES)
         glVertex2f(*self.start)
         glVertex2f(*self.end)
@@ -149,9 +160,45 @@ class Image(Geom):
         img = pyglet.image.load(fname)
         self.img = img
         self.flip = False
-    def render1(self):
+    def render1(self, transforms):
         self.img.blit(-self.width/2, -self.height/2, width=self.width, height=self.height)
 
+class Text(Geom):
+    def __init__(self, text, x, y, anchor_x="right", anchor_y="bottom",
+                    size=12, font="Arial", rotation="inherit"):
+        Geom.__init__(self)
+        self.Text = text
+        self.AnchorX = anchor_x
+        self.AnchorY = anchor_y
+        self.Size = size
+        self.Font = font
+        self.X = x
+        self.Y = y
+        self.Rotation = rotation
+        
+    def render1(self, transforms):
+        from pyglet.text import Label
+        x, y, a = self.X, self.Y, 0.0
+        print("Text.render1: input ",x,y,a)
+        for t in reversed(transforms):
+            print(t)
+            x, y, a = t(x, y, a)
+        print ("Text.render1: output", x, y, a)
+        if self.Rotation != "inherit":
+            a = self.Rotation
+
+        glPushMatrix()
+        glLoadIdentity()
+        glTranslatef(x, y, 0) # translate to GL loc ppint
+        glRotatef(RAD2DEG * a, 0, 0, 1.0)
+
+        Label(self.Text, font_name=self.Font, font_size=self.Size,
+             anchor_x = self.AnchorX, anchor_y = self.AnchorY,
+             x = 0, y = 0
+        ).draw()
+        
+        glPopMatrix()
+        
 def Circle(radius=10, res=30, filled=True):
     points = []
     for i in range(res):
@@ -170,4 +217,6 @@ def Rectangle(left, right, top, bottom, filled=True):
     return Polygon([
         (left, bottom), (right, bottom), (right, top), (left, top)
     ], filled=filled)
+    
+
     
