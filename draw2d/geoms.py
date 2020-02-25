@@ -164,26 +164,27 @@ class Image(Geom):
         self.img.blit(-self.width/2, -self.height/2, width=self.width, height=self.height)
 
 class Text(Geom):
-    def __init__(self, text, x, y, anchor_x="right", anchor_y="bottom",
-                    size=12, font="Arial", rotation="inherit"):
+    def __init__(self, text, anchor_x="right", anchor_y="bottom",
+                    size=12, font="Arial", rotation="inherit", color=(1.0,1.0,1.0)):
         Geom.__init__(self)
         self.Text = text
         self.AnchorX = anchor_x
         self.AnchorY = anchor_y
         self.Size = size
         self.Font = font
-        self.X = x
-        self.Y = y
         self.Rotation = rotation
+        if len(color) == 3:
+            color = color + (1.0,)
+        self.Color = [int(c*255.0) for c in color]
         
     def render1(self, transforms):
         from pyglet.text import Label
-        x, y, a = self.X, self.Y, 0.0
-        print("Text.render1: input ",x,y,a)
+        x, y, a = 0.0, 0.0, 0.0
+        #print("Text.render1: input ",x,y,a)
         for t in reversed(transforms):
-            print(t)
+            #print(t)
             x, y, a = t(x, y, a)
-        print ("Text.render1: output", x, y, a)
+        #print ("Text.render1: output", x, y, a)
         if self.Rotation != "inherit":
             a = self.Rotation
 
@@ -193,7 +194,7 @@ class Text(Geom):
         glRotatef(RAD2DEG * a, 0, 0, 1.0)
 
         Label(self.Text, font_name=self.Font, font_size=self.Size,
-             anchor_x = self.AnchorX, anchor_y = self.AnchorY,
+             anchor_x = self.AnchorX, anchor_y = self.AnchorY, color=self.Color,
              x = 0, y = 0
         ).draw()
         
