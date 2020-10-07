@@ -61,6 +61,8 @@ class Viewer(object):
 
         glEnable(GL_BLEND)
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
+        glEnable(GL_PROGRAM_POINT_SIZE)
+        glPointSize(2.0)
         
     def frame(self, left, right, bottom, top, add=True):
         assert right > left and top > bottom
@@ -80,10 +82,10 @@ class Viewer(object):
         self.onetime_geoms.append(geom)
 
     def render(self, return_rgb_array=False):
-        glClearColor(*self.clear_color)
-        self.window.clear()
         self.window.switch_to()
         self.window.dispatch_events()
+        glClearColor(*self.clear_color)
+        self.window.clear()
         for geom in self.geoms:
             geom.render()
         for geom in self.onetime_geoms:
