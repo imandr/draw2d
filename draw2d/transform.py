@@ -44,10 +44,13 @@ class Transform(Attr):
         glTranslatef(self.translation[0], self.translation[1], 0) # translate to GL loc ppint
         glRotatef(RAD2DEG * self.rotation, 0, 0, 1.0)
         glScalef(self.scale[0], self.scale[1], 1)
+        #print("Transform enabled:", self)
+        
         
     def disable(self):
         #print("%s: disable" % (self,))
         glPopMatrix()
+        #print("Transform disabled:", self)
 
     __enter__ = enable
     
@@ -96,7 +99,7 @@ class Transform(Attr):
         return x, y, a
         
     __call__ = apply
-        
+    
 class Frame(object):
     def __init__(self, geoms=[], transform=None, hidden=False, **args):
         self.NamedGeoms = {}
@@ -108,6 +111,9 @@ class Frame(object):
         return "<Frame: %s>" % (repr(self.transform),)
         
     __repr__ = __str__
+    
+    def translate(self, x, y, a):
+        return self.transform.apply(x, y, a)
 
     def hide(self):
         self.hidden = True
@@ -139,6 +145,8 @@ class Frame(object):
     def remove_all(self):
         self.NamedGeoms = {}
         self.UnnamedGeoms = []
+    
+    clear = remove_all
 
     def remove(self, label):
         if label in self.NamedGeoms:

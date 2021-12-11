@@ -19,6 +19,8 @@ class Attr(object):
 class Color(Attr):
     def __init__(self, vec4):
         self.vec4 = vec4
+    def __str__(self):
+        return f"<Color {self.vec4}>"
     def enable(self):
         glColor4f(*self.vec4)
 
