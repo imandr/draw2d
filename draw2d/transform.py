@@ -34,6 +34,17 @@ class Transform(Attr):
         return "<Transform t:%s r:%s, s:%s>" % (self.translation, self.rotation, self.scale)
     
     __repr__ = __str__
+    
+    @staticmethod
+    def linear(x0, x1, y0, y1, X0, X1, Y0, Y1):
+        #
+        # linear transpomation from rectangle ((x0, y0), (x1, y1)) to ((X0, Y0), (X1, Y1))
+        #
+        assert x0 != x1 and y0 != y1
+        scale = ((X1-X0)/(x1-x0), (Y1-Y0)/(y1-y0))
+        tx = X0 - scale[0]*x0
+        ty = Y0 - scale[1]*y0
+        return Transform(scale=scale, translation=(tx, ty))
         
     @staticmethod
     def zero():
@@ -100,58 +111,3 @@ class Transform(Attr):
         
     __call__ = apply
     
-class Frame(object):
-    def __init__(self, geoms=[], transform=None, hidden=False, **args):
-        self.NamedGeoms = {}
-        self.UnnamedGeoms = []
-        self.transform = transform if transform is not None else Transform(**args)
-        self.hidden = hidden
-        
-    def __str__(self):
-        return "<Frame: %s>" % (repr(self.transform),)
-        
-    __repr__ = __str__
-    
-    def translate(self, x, y, a):
-        return self.transform.apply(x, y, a)
-
-    def hide(self):
-        self.hidden = True
-        return self
-    
-    def show(self):
-        self.hidden = False
-        return self
-    
-    def add(self, g, label=None, at=None, rotation=None, scale=None):
-        if label is None:
-            self.UnnamedGeoms.append(g)
-        else:
-            self.NamedGeoms[label] = g
-        if at is not None:  g.move_to(*at)
-        if rotation is not None:    g.rotate_to(rotation)
-        if scale is not None:   g.scale_to(*scale)
-        return self
-            
-    def __getitem__(self, label):
-        return self.NamedGeoms[label]
-        
-    def render(self, transforms=[]):
-        if not self.hidden:
-            with self.transform:
-                for g in self.UnnamedGeoms + list(self.NamedGeoms.values()):
-                    g.render(transforms+[self.transform])
-                        
-    def remove_all(self):
-        self.NamedGeoms = {}
-        self.UnnamedGeoms = []
-    
-    clear = remove_all
-
-    def remove(self, label):
-        if label in self.NamedGeoms:
-            del self.NamedGeoms[label]
-
-    def __getattr__(self, name):
-        return getattr(self.transform, name)
-        

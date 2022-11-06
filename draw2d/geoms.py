@@ -26,23 +26,29 @@ except ImportError as e:
     'xvfb-run -s \"-screen 0 1400x900x24\" python <your_script.py>'
     ''')
 
-class Geom(object):
-    def __init__(self, transform=None, hidden=False):
-        self._color=Color((0, 0, 0, 1.0))
-        self.attrs = [self._color]
-        self.transform = transform
-        self.hidden = hidden
-        
+class Sprite(object):
+    
+    def __init__(self, hidden=False, transient=False):
+        self.Hidden = hidden
+        self.Transient = transient
+
     def hide(self):
-        self.hidden = True
+        self.Hidden = True
         return self
     
     def show(self):
-        self.hidden = False
+        self.Hidden = False
         return self
-    
+
+class Geom(Sprite):
+    def __init__(self, transform=None, hidden=False):
+        Sprite.__init__(self, hidden)
+        self._color=Color((0, 0, 0, 1.0))
+        self.attrs = [self._color]
+        self.transform = transform
+        
     def render(self, transforms=[], enable_transforms=True):
-        if not self.hidden:
+        if not self.Hidden:
             for attr in reversed(self.attrs):
                 #print("Geom.render: attr:", attr)
                 attr.enable()
@@ -66,9 +72,10 @@ class Geom(object):
         self.attrs.append(attr)
         return self
         
-    def set_color(self, r, g, b):
-        self._color.vec4 = (r, g, b, 1)
+    def set_color(self, r, g, b, a=1):
+        self._color.vec4 = (r, g, b, a)
         return self
+
     color = set_color
 
     def line_width(self, w):
