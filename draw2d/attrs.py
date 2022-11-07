@@ -1,5 +1,5 @@
 try:
-    from pyglet.gl import glColor4f, glLineWidth, glLineStipple, glLineStipple, glDisable, GL_LINE_STIPPLE
+    from pyglet.gl.gl_compat import glColor4f, glLineWidth, glLineStipple, glLineStipple, glDisable, GL_LINE_STIPPLE
 except ImportError as e:
     raise ImportError('''
     Error occurred while running `from pyglet.gl import *`

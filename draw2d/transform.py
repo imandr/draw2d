@@ -22,6 +22,16 @@ if True:
         'xvfb-run -s \"-screen 0 1400x900x24\" python <your_script.py>'
         ''')
 
+    try:
+        from pyglet.gl.gl_compat import *
+    except ImportError as e:
+        raise ImportError('''
+        Error occurred while running `from pyglet.gl import *`
+        HINT: make sure you have OpenGL install. On Ubuntu, you can run 'apt-get install python-opengl'.
+        If you're running on a server, you may need a virtual frame buffer; something like this should work:
+        'xvfb-run -s \"-screen 0 1400x900x24\" python <your_script.py>'
+        ''')
+
 RAD2DEG = 180.0/math.pi
 
 class Transform(Attr):
@@ -103,6 +113,7 @@ class Frame(object):
         self.UnnamedGeoms = []
         self.transform = transform if transform is not None else Transform(**args)
         self.hidden = hidden
+        self.OneTimeGeoms = []
         
     def __str__(self):
         return "<Frame: %s>" % (repr(self.transform),)
@@ -117,8 +128,10 @@ class Frame(object):
         self.hidden = False
         return self
     
-    def add(self, g, label=None, at=None, rotation=None, scale=None):
-        if label is None:
+    def add(self, g, label=None, at=None, rotation=None, scale=None, one_time=False):
+        if one_time:
+            self.OneTimeGeoms.append(g)
+        elif label is None:
             self.UnnamedGeoms.append(g)
         else:
             self.NamedGeoms[label] = g
@@ -133,8 +146,9 @@ class Frame(object):
     def render(self, transforms=[]):
         if not self.hidden:
             with self.transform:
-                for g in self.UnnamedGeoms + list(self.NamedGeoms.values()):
+                for g in self.UnnamedGeoms + list(self.NamedGeoms.values()) + self.OneTimeGeoms:
                     g.render(transforms+[self.transform])
+        self.OneTimeGeoms = []
                         
     def remove_all(self):
         self.NamedGeoms = {}
