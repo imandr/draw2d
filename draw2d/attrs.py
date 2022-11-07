@@ -1,5 +1,6 @@
 try:
-    from pyglet.gl.gl_compat import glColor4f, glLineWidth, glLineStipple, glLineStipple, glDisable, GL_LINE_STIPPLE
+    #from pyglet.gl.gl_compat import glColor4f, glLineWidth, glLineStipple, glLineStipple, glDisable, GL_LINE_STIPPLE
+    from pyglet.gl import glColor4f, glLineWidth, glLineStipple, glLineStipple, glDisable, glEnable, GL_LINE_STIPPLE
 except ImportError as e:
     raise ImportError('''
     Error occurred while running `from pyglet.gl import *`
@@ -19,6 +20,8 @@ class Attr(object):
 class Color(Attr):
     def __init__(self, vec4):
         self.vec4 = vec4
+    def __str__(self):
+        return f"<Color {self.vec4}>"
     def enable(self):
         glColor4f(*self.vec4)
 

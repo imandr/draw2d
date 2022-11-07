@@ -1,4 +1,5 @@
-from .transform import Frame
+from .frame import Frame
+from .scene import Scene
 
 import os
 import six
@@ -46,8 +47,9 @@ def get_display(spec):
         raise error.Error('Invalid display specification: {}. (Must be a string like :0 or None.)'.format(spec))
 
 
-class Viewer(object):
+class Viewer(Scene):
     def __init__(self, width, height, display=None, clear_color=(0,0,0,1)):
+        Scene.__init__(self)
         display = get_display(display)
 
         self.width = width
@@ -55,45 +57,36 @@ class Viewer(object):
         self.window = pyglet.window.Window(width=width, height=height, display=display)
         self.window.on_close = self.window_closed_by_user
         self.isopen = True
-        self.geoms = []
-        self.onetime_geoms = []
         self.clear_color = clear_color
+        self.main_frame = Frame()
 
         glEnable(GL_BLEND)
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
         glEnable(GL_PROGRAM_POINT_SIZE)
         glPointSize(2.0)
         
-    def frame(self, left, right, bottom, top, add=True):
+    def frame(self, left, right, bottom, top, add=True, transient=False):
         assert right > left and top > bottom
         scalex = self.width/(right-left)
         scaley = self.height/(top-bottom)
-        f = Frame(
-            translation=(-left*scalex, -bottom*scaley),
-            scale=(scalex, scaley))
+        
+        f = Frame.linear(left, right, bottom, top, 0, self.width, 0, self.height)
         if add:
-            self.add_geom(f)
+            self.main_frame.add(f)
         return f
 
-    def add_geom(self, geom):
-        self.geoms.append(geom)
-
-    def add_onetime(self, geom):
-        self.onetime_geoms.append(geom)
-
-    def render(self, return_rgb_array=False):
+    def render(self, return_rgb_array=False, remove_transient=True):
         self.window.switch_to()
         self.window.dispatch_events()
         glClearColor(*self.clear_color)
         self.window.clear()
-        for geom in self.geoms:
-            geom.render()
-        for geom in self.onetime_geoms:
-            geom.render()
+        self.main_frame.render()
         arr = None
         if return_rgb_array:
+            import numpy as np
             buffer = pyglet.image.get_buffer_manager().get_color_buffer()
             image_data = buffer.get_image_data()
+            print(type(image_data), dir(image_data))
             arr = np.frombuffer(image_data.data, dtype=np.uint8)
             # In https://github.com/openai/gym-http-api/issues/2, we
             # discovered that someone using Xmonad on Arch was having
@@ -104,7 +97,8 @@ class Viewer(object):
             arr = arr.reshape(buffer.height, buffer.width, 4)
             arr = arr[::-1,:,0:3]
         self.window.flip()
-        self.onetime_geoms = []
+        if remove_transient:
+            self.main_frame.remove_transient()
         return arr if return_rgb_array else self.isopen
 
     def window_closed_by_user(self):

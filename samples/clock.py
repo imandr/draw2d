@@ -2,7 +2,7 @@ from draw2d import Viewer, Rectangle, Frame, Circle, Line
 
 import math, time
 
-viewer = Viewer(800,800)
+viewer = Viewer(800,800, clear_color=(1,1,1,1))
 
 frame = viewer.frame(-1.1, 1.1, -1.1, 1.1)
 

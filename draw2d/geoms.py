@@ -26,33 +26,41 @@ except ImportError as e:
     'xvfb-run -s \"-screen 0 1400x900x24\" python <your_script.py>'
     ''')
 
-class Geom(object):
-    def __init__(self, transform=None, hidden=False):
-        self._color=Color((0, 0, 0, 1.0))
-        self.attrs = [self._color]
-        self.transform = transform
-        self.hidden = hidden
-        
+class Sprite(object):
+    
+    def __init__(self, hidden=False, transient=False):
+        self.Hidden = hidden
+        self.Transient = transient
+
     def hide(self):
-        self.hidden = True
+        self.Hidden = True
         return self
     
     def show(self):
-        self.hidden = False
+        self.Hidden = False
         return self
-    
-    def render(self, transforms=[]):
-        if not self.hidden:
+
+class Geom(Sprite):
+    def __init__(self, transform=None, hidden=False):
+        Sprite.__init__(self, hidden)
+        self._color=Color((0, 0, 0, 1.0))
+        self.attrs = [self._color]
+        self.transform = transform
+        
+    def render(self, transforms=[], enable_transforms=True):
+        if not self.Hidden:
             for attr in reversed(self.attrs):
+                #print("Geom.render: attr:", attr)
                 attr.enable()
             t = transforms
             if self.transform is not None:
-                self.transform.enable()
+                if enable_transforms:
+                    self.transform.enable()
                 t = transforms + [self.transform]
                 
             self.render1(t)
 
-            if self.transform is not None:
+            if self.transform is not None and enable_transforms:
                 self.transform.disable()
             for attr in self.attrs:
                 attr.disable()
@@ -63,10 +71,15 @@ class Geom(object):
     def add_attr(self, attr):
         self.attrs.append(attr)
         return self
-    def set_color(self, r, g, b):
-        self._color.vec4 = (r, g, b, 1)
+        
+    def set_color(self, r, g, b, a=1):
+        self._color.vec4 = (r, g, b, a)
         return self
+
     color = set_color
+
+    def line_width(self, w):
+        return self.add_attr(LineWidth(w))
         
     def transform(self, **args):
         self.transform = Transform(**args)
@@ -115,14 +128,16 @@ class FilledPolygon(Geom):
     def __init__(self, v):
         Geom.__init__(self)
         self.v = v
+        
     def render1(self, transforms):
+        #print("rendeing FilledPolygon:", self.v)
         if   len(self.v) == 4 : glBegin(GL_QUADS)
         elif len(self.v)  > 4 : glBegin(GL_POLYGON)
         else: glBegin(GL_TRIANGLES)
         for p in self.v:
             glVertex3f(p[0], p[1],0)  # draw each vertex
         glEnd()
-
+        
 class PolyLine(Geom):
     def __init__(self, v, close):
         Geom.__init__(self)
@@ -164,7 +179,7 @@ class Image(Geom):
         self.img.blit(-self.width/2, -self.height/2, width=self.width, height=self.height)
 
 class Text(Geom):
-    def __init__(self, text, anchor_x="right", anchor_y="bottom",
+    def __init__(self, text="", anchor_x="right", anchor_y="bottom",
                     size=12, font="Arial", rotation="inherit", color=(1.0,1.0,1.0)):
         Geom.__init__(self)
         self.Text = text
@@ -190,7 +205,7 @@ class Text(Geom):
 
         glPushMatrix()
         glLoadIdentity()
-        glTranslatef(x, y, 0) # translate to GL loc ppint
+        glTranslatef(x, y, 0) # translate to GL loc point
         glRotatef(RAD2DEG * a, 0, 0, 1.0)
 
         Label(self.Text, font_name=self.Font, font_size=self.Size,
@@ -200,6 +215,34 @@ class Text(Geom):
         
         glPopMatrix()
         
+class Marker(Geom):
+    def __init__(self, geom, rotation="inherit"):
+        Geom.__init__(self)
+        self.Rotation = rotation
+        self.Geom = geom
+        
+    def render1(self, transforms):
+        # build transform from all stacked transforms, ignoring scale
+        #print("Marker.render: calculating transforms...")
+        #x, y, a = self.transform.apply(0.0, 0.0, 0.0)
+        x, y, a = 0.0, 0.0, 0.0
+        for t in reversed(transforms):
+            #print("Marker.render: t:", t)
+            x1, y1, a1 = t(x, y, a)
+            #print("                 ", x, y, a, "->", x1, y1, a1)
+            x, y, a = x1, y1, a1
+        
+        if self.Rotation != "inherit":  a = self.Rotation
+        
+        glPushMatrix()
+        glLoadIdentity()
+        glTranslatef(x, y, 0) # translate to GL loc point
+        glRotatef(RAD2DEG * a, 0, 0, 1.0)
+
+        self.Geom.render(enable_transforms=False)
+        
+        glPopMatrix()
+
 def Circle(radius=10, res=30, filled=True):
     points = []
     for i in range(res):

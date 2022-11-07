@@ -34,7 +34,7 @@ viewer = Viewer(800,800)
 #r = Rectangle(100, 200, 300, 400).color(1,1,1)
 #viewer.add_geom(r)
 p = Point().color(1,1,1).move_to(30,30)
-viewer.add_geom(p)
+viewer.add(p)
 
     
 while True:
