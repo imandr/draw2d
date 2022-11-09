@@ -1,10 +1,13 @@
 from .frame import Frame
 from .scene import Scene
+from .attrs import Color
 
 import os
 import sys
 
 import pygame
+pygame.init()
+
 
 class Viewer(Scene):
     def __init__(self, width, height, display=None, clear_color=(0,0,0,255)):
@@ -12,10 +15,12 @@ class Viewer(Scene):
         self.width = width
         self.height = height
         self.Surface = pygame.display.set_mode((width, height))
-        self.ClearColor = pygame.Color(*clear_color)
+        self.ClearColor = Color(clear_color)
         self.main_frame = Frame()
         
-    def frame(self, left, right, bottom, top, add=True, transient=False):
+    def frame(self, left=None, right=None, bottom=None, top=None, add=True, transient=False):
+        if left is None:
+            left, right, bottom, top = 0, self.width, 0, self.height
         assert right > left and top > bottom
         scalex = self.width/(right-left)
         scaley = self.height/(top-bottom)

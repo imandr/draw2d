@@ -1,7 +1,8 @@
 import math
 from .transformation import Transform
+from .attrs import Color
 import pygame
-import pygame.gfxdraw
+import pygame.gfxdraw, pygame.freetype
 
 RAD2DEG = 180.0/math.pi
 DEG2RAD = math.pi/180.0
@@ -11,6 +12,9 @@ class Sprite(object):
     def __init__(self, hidden=False, transient=False):
         self.Hidden = hidden
         self.Transient = transient
+        self.Translation = (0.0, 0.0)
+        self.Angle = 0.0
+        self.Scale = (1.0, 1.0)
 
     def hide(self):
         self.Hidden = True
@@ -19,16 +23,7 @@ class Sprite(object):
     def show(self):
         self.Hidden = False
         return self
-
-class Geom(Sprite):
-    def __init__(self, hidden=False):
-        Sprite.__init__(self, hidden)
-        self.Color = pygame.Color(0,0,0,1)
-        #self.attrs = [self._color]
-        self.Translation = (0.0, 0.0)
-        self.Angle = 0.0
-        self.Scale = (1.0, 1.0)
-
+        
     def move_to(self, newx, newy):
         self.Translation = (float(newx), float(newy))
         return self
@@ -54,7 +49,17 @@ class Geom(Sprite):
 
     def scale_by(self, deltax, deltay):
         return self.scale_to(self.scale[0]*deltax, self.scale[1]*deltay)
-        
+    
+    @property
+    def transform(self):
+        return Transform(scale=self.Scale, angle=self.Angle, translate=self.Translation)
+
+class Geom(Sprite):
+    def __init__(self, hidden=False):
+        Sprite.__init__(self, hidden)
+        self.Color = Color(0,0,0,1.0)
+        #self.attrs = [self._color]
+
     def render(self, surface, context):
         if not self.Hidden:
             #for attr in reversed(self.attrs):
@@ -184,25 +189,29 @@ class Text(Geom):
         self.Font = pygame.freetype.SysFont('arial', size)
         self.TextRect = self.Font.get_rect(text)
         self.TextRect.center = (0,0)
-        self.Color = pygame.Color(color)
-        self.BGColor = pygame.Color(bgcolor)
+        self.Color = Color(color)
+        self.BGColor = Color(bgcolor)
 
     def render1(self, surface, transform):
-        rotated_image, rotated_rect = font.get_rect(text, rotation=transform.Angle * RAD2DEG)
+        angle = round(transform.Angle * RAD2DEG)
+        rotated_image, rotated_rect = self.Font.render(self.Text, rotation=angle)
         rotated_rect.center = (0,0)
         anchor_x = {
-            "left": straight_rect.left,
+            "left": self.TextRect.left,
             "middle": 0,
-            "right": straight_rect.right
+            "center": 0,
+            "right": self.TextRect.right
         }[self.AnchorX]
         anchor_y = {
-            "top": straight_rect.top,
+            "top": self.TextRect.top,
             "middle": 0,
-            "bottom": straight_rect.bottom
+            "center": 0,
+            "bottom": self.TextRect.bottom
         }[self.AnchorY]
         anchor_x, anchor_y = Transform.rotation(transform.Angle)*(anchor_x, anchor_y) # rotated anchor relative to the left-top corner of rotated rect
         anchor_x = rotated_rect.width//2 + anchor_x
         anchor_y = rotated_rect.height//2 - anchor_y
+        x, y = transform*(0,0)
         surface.blit(rotated_image, (x - anchor_x, y - anchor_y))
 
 class Marker(Geom):

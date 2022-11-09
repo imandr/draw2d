@@ -2,19 +2,15 @@ from .transformation import Transform
 
 class Scene(object):
     
-    def __init__(self, transform=None):
-        self.transform = transform if transform is not None else Transform()
+    def __init__(self):
         self.Named = {}
         self.Unnamed = []
         
-    def add(self, g, label=None, at=None, rotation=None, scale=None):
+    def add(self, g, label=None):
         if label is None:
             self.Unnamed.append(g)
         else:
             self.Named[label] = g
-        if at is not None:  g.move_to(*at)
-        if rotation is not None:    g.rotate_to(rotation)
-        if scale is not None:   g.scale_to(*scale)
         return self
             
     def __getitem__(self, label):
