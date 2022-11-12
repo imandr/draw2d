@@ -5,6 +5,8 @@ import os
 import sys
 
 import pygame
+pygame.init()
+
 
 class Viewer(object):
     def __init__(self, width, height, display=None, clear_color=(0,0,0,255)):

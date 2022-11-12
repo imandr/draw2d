@@ -1,4 +1,4 @@
-import math, os
+import math
 from .transformation import IsoTransform, Transform
 from .attrs import Color
 import pygame

@@ -63,6 +63,10 @@ omega = 0.0
 max_omega = 0.1
 tau = 0.1
 
+v = Viewer(500, 500, clear_color=(1., 1., 1.))
+f = v.frame()
+f.add(Text("Hello").move_to(200, 200))
+v.render()
 while True:
     x += vx * tau
     y += vy * tau
