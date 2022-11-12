@@ -1,36 +1,52 @@
 import math
-from .attrs import Color, LineWidth
-from .transform import Transform
+from .transformation import IsoTransform, Transform
+from .attrs import Color
+import pygame
+import pygame.gfxdraw
+import pygame.freetype
 
 RAD2DEG = 180.0/math.pi
+DEG2RAD = math.pi/180.0
 
-
-
-try:
-    import pyglet
-except ImportError as e:
-    raise ImportError('''
-    Cannot import pyglet.
-    HINT: you can install pyglet directly via 'pip install pyglet'.
-    But if you really just want to install all Gym dependencies and not have to think about it,
-    'pip install -e .[all]' or 'pip install gym[all]' will do it.
-    ''')
-
-try:
-    from pyglet.gl import *
-except ImportError as e:
-    raise ImportError('''
-    Error occurred while running `from pyglet.gl import *`
-    HINT: make sure you have OpenGL install. On Ubuntu, you can run 'apt-get install python-opengl'.
-    If you're running on a server, you may need a virtual frame buffer; something like this should work:
-    'xvfb-run -s \"-screen 0 1400x900x24\" python <your_script.py>'
-    ''')
-
-class Sprite(object):
-    
-    def __init__(self, hidden=False, transient=False):
+class Geom(object):
+    def __init__(self, hidden=False, transient=False, transform=None):
+        self.Color = Color(0,0,0,1.0)
         self.Hidden = hidden
         self.Transient = transient
+        self.Transform = transform or IsoTransform()
+    
+    @property
+    def x(self):
+        return self.Transform.Translation[0]
+        
+    @property
+    def y(self):
+        return self.Transform.Translation[1]
+        
+    def move_to(self, *args):
+        self.Transform.move_to(*args)
+        return self
+
+    def move_by(self, *args):
+        self.Transform.move_by(*args)
+        #print("Geom.move_by: transform:", self.Transform)
+        return self
+
+    def rotate_to(self, *args):
+        self.Transform.rotate_to(*args)
+        return self
+
+    def rotate_by(self, *args):
+        self.Transform.rotate_by(*args)
+        return self
+
+    def scale_to(self, *args):
+        self.Transform.scale_to(*args)
+        return self
+
+    def scale_by(self, *args):
+        self.Transform.scale_by(*args)
+        return self
 
     def hide(self):
         self.Hidden = True
@@ -40,30 +56,14 @@ class Sprite(object):
         self.Hidden = False
         return self
 
-class Geom(Sprite):
-    def __init__(self, transform=None, hidden=False):
-        Sprite.__init__(self, hidden)
-        self._color=Color((0, 0, 0, 1.0))
-        self.attrs = [self._color]
-        self.transform = transform
-        
-    def render(self, transforms=[], enable_transforms=True):
+    def render(self, surface, context):
         if not self.Hidden:
-            for attr in reversed(self.attrs):
-                #print("Geom.render: attr:", attr)
-                attr.enable()
-            t = transforms
-            if self.transform is not None:
-                if enable_transforms:
-                    self.transform.enable()
-                t = transforms + [self.transform]
-                
-            self.render1(t)
-
-            if self.transform is not None and enable_transforms:
-                self.transform.disable()
-            for attr in self.attrs:
-                attr.disable()
+            #for attr in reversed(self.attrs):
+            #    #print("Geom.render: attr:", attr)
+            #    attr.enable()
+            self.render1(surface, context*self.Transform)
+            #for attr in self.attrs:
+            #    attr.disable()
                 
     def render1(self, transforms):
         raise NotImplementedError
@@ -72,100 +72,63 @@ class Geom(Sprite):
         self.attrs.append(attr)
         return self
         
-    def set_color(self, r, g, b, a=1):
-        self._color.vec4 = (r, g, b, a)
+    def set_color(self, *tup):
+        self.Color = Color(*tup)
         return self
 
     color = set_color
 
     def line_width(self, w):
         return self.add_attr(LineWidth(w))
-        
-    def transform(self, **args):
-        self.transform = Transform(**args)
-        return self
-        
-    def move_to(self, *params):
-        if self.transform is None:  self.transform = Transform()
-        self.transform.move_to(*params)
-        return self
 
-    def move_by(self, *params):
-        if self.transform is None:  self.transform = Transform()
-        self.transform.move_by(*params)
-        return self
-
-    def rotate_by(self, *params):
-        if self.transform is None:  self.transform = Transform()
-        self.transform.rotate_by(*params)
-        return self
-
-    def rotate_to(self, *params):
-        if self.transform is None:  self.transform = Transform()
-        self.transform.rotate_to(*params)
-        return self
-        
-    def scale_to(self, *params):
-        if self.transform is None:  self.transform = Transform()
-        self.transform.scale_to(*params)
-        return self
-
-    def scale_by(self, *params):
-        if self.transform is None:  self.transform = Transform()
-        self.transform.scale_by(*params)
-        return self
-        
 class Point(Geom):
     def __init__(self):
         Geom.__init__(self)
         
-    def render1(self, transforms):
-        glBegin(GL_POINTS) # draw point
-        glVertex3f(0.0, 0.0, 0.0)
-        glEnd()
-
-class FilledPolygon(Geom):
-    def __init__(self, v):
-        Geom.__init__(self)
-        self.v = v
+    def render1(self, surface, transform):
+        x, y = transform * (0, 0)
+        x = round(x)
+        y = round(y)
+        pygame.gfxdraw.pixel(surface, x, y, self.Color)
         
-    def render1(self, transforms):
-        #print("rendeing FilledPolygon:", self.v)
-        if   len(self.v) == 4 : glBegin(GL_QUADS)
-        elif len(self.v)  > 4 : glBegin(GL_POLYGON)
-        else: glBegin(GL_TRIANGLES)
-        for p in self.v:
-            glVertex3f(p[0], p[1],0)  # draw each vertex
-        glEnd()
+class FilledPolygon(Geom):
+    def __init__(self, points):
+        Geom.__init__(self)
+        self.Points = points
+        
+    def render1(self, surface, transform):
+        points = [transform*p for p in self.Points]
+        #print("FilledPolygon: points:", points)
+        pygame.draw.polygon(surface, self.Color, points)
+        pygame.gfxdraw.aapolygon(surface, points, self.Color)
         
 class PolyLine(Geom):
-    def __init__(self, v, close):
+    def __init__(self, points, close=False):
         Geom.__init__(self)
-        self.v = v
-        self.close = close
-        self.linewidth = LineWidth(1)
-        self.add_attr(self.linewidth)
-    def render1(self, transforms):
-        glBegin(GL_LINE_LOOP if self.close else GL_LINE_STRIP)
-        for p in self.v:
-            glVertex3f(p[0], p[1],0)  # draw each vertex
-        glEnd()
-    def set_linewidth(self, x):
-        self.linewidth.stroke = x
+        self.Points = points
+        self.Close = close
+        self.LineWidth = 1
+
+    def render1(self, surface, transform):
+        #print("PolyLine.render1: transform:", transform)
+        points = [transform*p for p in self.Points]
+        pygame.draw.lines(surface, self.Color, self.Close, points, width=self.LineWidth)
+
+    def line_width(self, x):
+        self.LineWidth = x
+        return self
 
 class Line(Geom):
     def __init__(self, start=(0.0, 0.0), end=(0.0, 0.0)):
         Geom.__init__(self)
         self.start = start
         self.end = end
-        self.linewidth = LineWidth(1)
-        self.add_attr(self.linewidth)
+        self.LineWidth = 1
 
-    def render1(self, transforms):
-        glBegin(GL_LINES)
-        glVertex2f(*self.start)
-        glVertex2f(*self.end)
-        glEnd()
+    def render1(self, surface, transforms):
+        start = transforms*self.start
+        end = transforms*self.end
+        pygame.draw.line(surface, self.Color, start, end, width=self.LineWidth)
 
 class Image(Geom):
     def __init__(self, fname, width, height):
@@ -180,78 +143,98 @@ class Image(Geom):
 
 class Text(Geom):
     def __init__(self, text="", anchor_x="right", anchor_y="bottom",
-                    size=12, font="Arial", rotation="inherit", color=(1.0,1.0,1.0)):
+                    margin = 0,
+                    size=12, font="Arial", color=(0,0,0,255), bgcolor=None):
         Geom.__init__(self)
-        self.Text = text
+        self._Text = text
         self.AnchorX = anchor_x
         self.AnchorY = anchor_y
         self.Size = size
-        self.Font = font
-        self.Rotation = rotation
-        if len(color) == 3:
-            color = color + (1.0,)
-        self.Color = [int(c*255.0) for c in color]
-        
-    def render1(self, transforms):
-        from pyglet.text import Label
-        x, y, a = 0.0, 0.0, 0.0
-        #print("Text.render1: input ",x,y,a)
-        for t in reversed(transforms):
-            #print(t)
-            x, y, a = t(x, y, a)
-        #print ("Text.render1: output", x, y, a)
-        if self.Rotation != "inherit":
-            a = self.Rotation
+        self.Font = pygame.freetype.SysFont('arial', size)
+        self.Color = Color(color)
+        self.BGColor = Color(bgcolor)
+        self.Margin = margin
+        self.LastAngle = self.RenderedImage = self.RenderedRect = None
 
-        glPushMatrix()
-        glLoadIdentity()
-        glTranslatef(x, y, 0) # translate to GL loc point
-        glRotatef(RAD2DEG * a, 0, 0, 1.0)
+    def text(self, text):
+        if self._Text != text:
+            self._Text = text
+            self.RenderedImage = None
 
-        Label(self.Text, font_name=self.Font, font_size=self.Size,
-             anchor_x = self.AnchorX, anchor_y = self.AnchorY, color=self.Color,
-             x = 0, y = 0
-        ).draw()
+    @property
+    def Text(self):
+        return self._Text
         
-        glPopMatrix()
-        
+    @Text.setter
+    def _set_text(self, text):
+        self.text(text)
+
+    def update(self, angle):
+        self.TextRect = self.Font.get_rect(self._Text)
+        self.TextRect.inflate_ip(self.Margin*2, self.Margin*2)
+        self.TextRect.center = (0,0)
+        self.RenderedImage, self.RenderedRect = self.Font.render(self._Text, 
+            fgcolor = self.Color, bgcolor=self.BGColor,
+            rotation=angle
+        )
+        self.RenderedRect.center = (0,0)
+        self.LastAngle = angle
+        return self.RenderedImage, self.RenderedRect
+
+    def render1(self, surface, transform):
+        #print("Text.rebder1: self.Transform:", self.Transform, "    combined angle:", transform.Angle)
+        x, y = transform.translation
+        angle = round(transform.Angle * RAD2DEG)
+        if angle != self.LastAngle or self.RenderedImage is None or self.RenderedRect is None:
+            self.update(angle)
+        rotated_image = self.RenderedImage
+        rotated_rect = self.RenderedRect
+        #print("Text.render1: text:", self._Text, "  rotated_rect:", rotated_rect)
+        anchor_x = {
+            "left": self.TextRect.left,
+            "middle": 0,
+            "center": 0,
+            "right": self.TextRect.right
+        }[self.AnchorX]
+        anchor_y = {
+            "top": self.TextRect.top,
+            "middle": 0,
+            "center": 0,
+            "bottom": self.TextRect.bottom
+        }[self.AnchorY]
+        anchor_x, anchor_y = Transform.rotation(-transform.Angle)*(anchor_x, anchor_y) 
+        anchor_x = rotated_rect.width//2 + anchor_x
+        anchor_y = rotated_rect.height//2 + anchor_y
+        # rotated anchor relative to the left-top corner of rotated rect
+        surface.blit(rotated_image, (x - anchor_x, y - anchor_y))
+
 class Marker(Geom):
     def __init__(self, geom, rotation="inherit"):
         Geom.__init__(self)
         self.Rotation = rotation
         self.Geom = geom
-        
-    def render1(self, transforms):
-        # build transform from all stacked transforms, ignoring scale
-        #print("Marker.render: calculating transforms...")
-        #x, y, a = self.transform.apply(0.0, 0.0, 0.0)
-        x, y, a = 0.0, 0.0, 0.0
-        for t in reversed(transforms):
-            #print("Marker.render: t:", t)
-            x1, y1, a1 = t(x, y, a)
-            #print("                 ", x, y, a, "->", x1, y1, a1)
-            x, y, a = x1, y1, a1
-        
-        if self.Rotation != "inherit":  a = self.Rotation
-        
-        glPushMatrix()
-        glLoadIdentity()
-        glTranslatef(x, y, 0) # translate to GL loc point
-        glRotatef(RAD2DEG * a, 0, 0, 1.0)
 
-        self.Geom.render(enable_transforms=False)
-        
-        glPopMatrix()
+    def render(self, surface, context):
+        if not self.Hidden:
+            t = context * self.Transform
+            tx, ty = t.translation
+            angle = t.Angle
+            self.Geom.render1(surface, Transform(angle=anlge, translation=(tx, ty)))
 
-def Circle(radius=10, res=30, filled=True):
-    points = []
-    for i in range(res):
-        ang = 2*math.pi*i / res
-        points.append((math.cos(ang)*radius, math.sin(ang)*radius))
-    if filled:
-        return FilledPolygon(points)
-    else:
-        return PolyLine(points, True)
+class Circle(Geom):
+    def __init__(self, radius, filled=True, **compat):
+        Geom.__init__(self)
+        self.Radius = radius
+        self.Filled = filled
+        
+    def render1(self, surface, transform):
+        c = transform * (0., 0.)
+        p = transform * (self.Radius, 0.)
+        r = math.sqrt((p[0]-c[0])**2 + (p[1]-c[1])**2)
+        if self.Filled:
+            pygame.gfxdraw.filled_circle(surface, round(c[0]), round(c[1]), round(r), self.Color)
+        pygame.gfxdraw.aacircle(surface, round(c[0]), round(c[1]), round(r), self.Color)
+            
         
 def Polygon(v, filled=True):
     if filled: return FilledPolygon(v)

@@ -1,19 +1,15 @@
-from pygame import Color as PGColor
+try:
+    #from pyglet.gl.gl_compat import glColor4f, glLineWidth, glLineStipple, glLineStipple, glDisable, GL_LINE_STIPPLE
+    from pyglet.gl import glColor4f, glLineWidth, glLineStipple, glLineStipple, glDisable, glEnable, GL_LINE_STIPPLE
+except ImportError as e:
+    raise ImportError('''
+    Error occurred while running `from pyglet.gl import *`
+    HINT: make sure you have OpenGL install. On Ubuntu, you can run 'apt-get install python-opengl'.
+    If you're running on a server, you may need a virtual frame buffer; something like this should work:
+    'xvfb-run -s \"-screen 0 1400x900x24\" python <your_script.py>'
+    ''')
 
-def Color(*args):
-    if len(args) == 1:
-        if args[0] is None:
-            return None
-        elif isinstance(args[0], (tuple, list)):
-            args = args[0]
-    converted = []
-    for c in args:
-        if isinstance(c, float) and c <= 1.0:
-            c = round(c*255)
-        elif isinstance(c, float):
-            c = round(c)
-        converted.append(c)
-    return PGColor(*converted)
+
 
 class Attr(object):
     def enable(self):
@@ -21,7 +17,7 @@ class Attr(object):
     def disable(self):
         pass
 
-class ____Color(Attr):
+class Color(Attr):
     def __init__(self, vec4):
         self.vec4 = vec4
     def __str__(self):
