@@ -3,19 +3,54 @@ from draw2d import Viewer, Text, Line, Rectangle, Frame, Point, Circle
 import math, time, random
 
 
-viewer = Viewer(600,600)
+viewer = Viewer(600,600,clear_color=(1., 1., 1., 1.))
 W = 1.0
-F = viewer.frame(0., W, 0., W)
+F = viewer.frame(-W, W, -W, W)
 
-F.add(Text("North", anchor_x="center", anchor_y="top", color=(0.2,0.2,1.0)).move_to(0.5,0.9))
-F.add(Text("South", anchor_x="center", anchor_y="bottom", color=(1.0,1.0,0.1)).move_to(0.5,0.1))
-F.add(Text("East", anchor_x="right", anchor_y="center", color=(0.2,1.0,1.0)).move_to(0.9,0.5))
-F.add(Text("West", anchor_x="left", anchor_y="center", color=(1.0,0.2,0.1)).move_to(0.1,0.5))
+F.add(Frame().move_to(0.0,0.8) \
+        .add(Text("North", anchor_x="center", anchor_y="bottom", margin=5, color=(0.2,0.2,1.0))) \
+        .add(Circle(0.002).color(1.0,0,0,1.0))
+    ) \
+.add(Frame().move_to(0.0,-0.8) \
+        .add(Text("South", anchor_x="center", anchor_y="top", margin=5, color=(1.0,1.0,0.1))) \
+        .add(Circle(0.002).color(1.0,0,0,1.0))
+    ) \
+.add(Frame().move_to(0.8,0.0) \
+        .add(Text("East", anchor_x="left", anchor_y="center", margin=5, color=(0.2,1.0,1.0))) \
+        .add(Circle(0.002).color(1.0,0,0,1.0))
+    ) \
+.add(Frame().move_to(-0.8, 0.0) \
+        .add(Text("West", anchor_x="right", anchor_y="center", margin=5, color=(1.0,0.2,0.1)))
+        .add(Circle(0.002).color(1.0,0,0,1.0))
+    ) \
+
+F.add(
+    Frame().move_to(0.1, 0.2) \
+        .add(Text(". . . . .", anchor_x="middle", anchor_y="bottom", margin=15).rotate_to(90, "deg")) \
+        .add(Circle(0.002))
+)
+F.add(
+    Frame().move_to(0.1, 0.1) \
+        .add(Text(". . . . .", anchor_x="middle", anchor_y="bottom", margin=15).rotate_to(45, "deg")) \
+        .add(Circle(0.002))
+)
+F.add(
+    Frame().move_to(0.1, 0.0) \
+        .add(Text(". . . . .", anchor_x="middle", anchor_y="bottom", margin=15).rotate_to(0, "deg")) \
+        .add(Circle(0.002))
+)
+F.add(
+    Frame().move_to(0.1, -0.1) \
+        .add(Text(". . . . .", anchor_x="middle", anchor_y="bottom", margin=15).rotate_to(-25, "deg")) \
+        .add(Circle(0.002))
+)
+
+
 
 fly = Frame()
-fly.add(Circle(radius=0.01).color(1,1,1))
-label = Text("").move_to(0.01, 0.01)
-vlabel = Text("", rotation=0.0, anchor_x="left", anchor_y="center").move_to(0.02, 0.0)
+fly.add(Circle(radius=0.01).color(0.2, 1.0, 0.1))
+label = Text("", anchor_x="center", anchor_y="bottom", margin=5).move_to(0.0, 0.0)
+vlabel = Text("", anchor_x="center", anchor_y="top", margin=5).move_to(0.0, 0.0)
 fly.add(label)
 fly.add(vlabel)
 F.add(fly, "fly")
@@ -36,8 +71,8 @@ while True:
     if x < 0.0 or x > W: vx = -vx*0.8
     if y < 0.0 or y > W: vy = -vy*0.8
         
-    x = max(0.0, min(W, x))
-    y = max(0.0, min(W, y))
+    x = max(-W, min(W, x))
+    y = max(-W, min(W, y))
     
     ax, ay = (2*random.random()-1)*vmax/10, (2*random.random()-1)*vmax/10
     vx += ay * tau

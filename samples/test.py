@@ -1,7 +1,7 @@
 from draw2d import Viewer, Point, PolyLine
 import time
 
-v = Viewer(500, 500)
+v = Viewer(500, 500, clear_color=(1., 1., 1.))
 f = v.frame(0, 500, 0, 500)
 f.add(Point().color(255,100,100).move_to(300,350))
 poly = PolyLine([(-15,-15), (-15,15), (15,15), (15,-15)]).move_to(10,10).color(100, 200, 100)

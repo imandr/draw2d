@@ -1,10 +1,27 @@
+from pygame import Color as PGColor
+
+def Color(*args):
+    if len(args) == 1:
+        if args[0] is None:
+            return None
+        elif isinstance(args[0], (tuple, list)):
+            args = args[0]
+    converted = []
+    for c in args:
+        if isinstance(c, float) and c <= 1.0:
+            c = round(c*255)
+        elif isinstance(c, float):
+            c = round(c)
+        converted.append(c)
+    return PGColor(*converted)
+
 class Attr(object):
     def enable(self):
         raise NotImplementedError
     def disable(self):
         pass
 
-class Color(Attr):
+class ____Color(Attr):
     def __init__(self, vec4):
         self.vec4 = vec4
     def __str__(self):

@@ -1,9 +1,6 @@
-from .transformation import Transform
-
 class Scene(object):
     
-    def __init__(self, transform=None):
-        self.transform = transform if transform is not None else Transform()
+    def __init__(self):
         self.Named = {}
         self.Unnamed = []
         
@@ -21,12 +18,13 @@ class Scene(object):
         return self.Named[label]
         
     def render(self, surface, transform=None):
-        if not self.Hidden:
-            if transform is None:
-                transform = Transform()
-            c = transform * self.transform
-            for g in self.Unnamed + list(self.Named.values()):
-                #print("rendering:", g)
+        if transform is None:
+            c = self.Transform
+        else:
+            c = transform * self.Transform
+        for g in self.Unnamed + list(self.Named.values()):
+            if not g.Hidden:
+                print("rendering:", g)
                 g.render(surface, c)
 
     def remove_all(self):
