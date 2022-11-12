@@ -34,6 +34,7 @@ class Viewer(object):
         pygame.display.flip()          
         if remove_transient:
             self.RootFrame.remove_transient()
+        return self.Surface.get_buffer().raw
 
 
 

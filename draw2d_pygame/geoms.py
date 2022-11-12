@@ -14,6 +14,14 @@ class Geom(object):
         self.Hidden = hidden
         self.Transient = transient
         self.Transform = transform or IsoTransform()
+    
+    @property
+    def x(self):
+        return self.Transform.Translation[0]
+        
+    @property
+    def y(self):
+        return self.Transform.Translation[1]
         
     def move_to(self, *args):
         self.Transform.move_to(*args)
@@ -138,7 +146,7 @@ class Text(Geom):
                     margin = 0,
                     size=12, font="Arial", color=(0,0,0,255), bgcolor=None):
         Geom.__init__(self)
-        self.Text = text
+        self._Text = text
         self.AnchorX = anchor_x
         self.AnchorY = anchor_y
         self.Size = size
@@ -146,23 +154,42 @@ class Text(Geom):
         self.Color = Color(color)
         self.BGColor = Color(bgcolor)
         self.Margin = margin
-        self.text(text)
-        
+        self.LastAngle = self.RenderedImage = self.RenderedRect = None
+
     def text(self, text):
-        self.Text = text
-        self.TextRect = self.Font.get_rect(text)
+        if self._Text != text:
+            self._Text = text
+            self.RenderedImage = None
+
+    @property
+    def Text(self):
+        return self._Text
+        
+    @Text.setter
+    def _set_text(self, text):
+        self.text(text)
+
+    def update(self, angle):
+        self.TextRect = self.Font.get_rect(self._Text)
         self.TextRect.inflate_ip(self.Margin*2, self.Margin*2)
         self.TextRect.center = (0,0)
+        self.RenderedImage, self.RenderedRect = self.Font.render(self._Text, 
+            fgcolor = self.Color, bgcolor=self.BGColor,
+            rotation=angle
+        )
+        self.RenderedRect.center = (0,0)
+        self.LastAngle = angle
+        return self.RenderedImage, self.RenderedRect
 
     def render1(self, surface, transform):
         #print("Text.rebder1: self.Transform:", self.Transform, "    combined angle:", transform.Angle)
         x, y = transform.translation
-        rotated_image, rotated_rect = self.Font.render(self.Text, 
-            fgcolor = self.Color, bgcolor=self.BGColor,
-            rotation=round(transform.Angle * RAD2DEG)
-        )
-        rotated_rect.center = (0,0)
-        #print("Text.render1: text:", self.Text, "  rotated_rect:", rotated_rect)
+        angle = round(transform.Angle * RAD2DEG)
+        if angle != self.LastAngle or self.RenderedImage is None or self.RenderedRect is None:
+            self.update(angle)
+        rotated_image = self.RenderedImage
+        rotated_rect = self.RenderedRect
+        #print("Text.render1: text:", self._Text, "  rotated_rect:", rotated_rect)
         anchor_x = {
             "left": self.TextRect.left,
             "middle": 0,
@@ -194,16 +221,6 @@ class Marker(Geom):
             angle = t.Angle
             self.Geom.render1(surface, Transform(angle=anlge, translation=(tx, ty)))
 
-def ___Circle(radius=10, res=30, filled=True):
-    points = []
-    for i in range(res):
-        ang = 2*math.pi*i / res
-        points.append((math.cos(ang)*radius, math.sin(ang)*radius))
-    if filled:
-        return FilledPolygon(points)
-    else:
-        return PolyLine(points, True)
-        
 class Circle(Geom):
     def __init__(self, radius, filled=True, **compat):
         Geom.__init__(self)
