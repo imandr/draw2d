@@ -9,7 +9,7 @@ class Frame(Geom):
         self.Unnamed = []
 
     @staticmethod
-    def linear(x0, x1, y0, y1, X0, X1, Y0, Y1, **args):
+    def box(x0, x1, y0, y1, X0, X1, Y0, Y1, **args):
         transform = BoxTransform(x0, x1, y0, y1, X0, X1, Y0, Y1)
         return Frame(transform=transform)
 
@@ -40,6 +40,14 @@ class Frame(Geom):
             if not g.Hidden:
                 #print("rendering:", g)
                 g.render(surface, c)
+
+    def locate(self, context=None):
+        t = self.Transform
+        if context is not None:
+            t = context * t
+        for g in self.Unnamed + list(self.Named.values()):
+            g.locate(t)
+        return Geom.locate(self, context)
 
     def remove_all(self):
         self.Named = {}

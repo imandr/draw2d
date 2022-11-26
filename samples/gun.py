@@ -2,12 +2,10 @@ from draw2d import Viewer, Rectangle, Frame, Circle, Line
 from pythreader import Gate, PyThread, Primitive, synchronized, RWLock
 import math, random, time
 
-
-
 class Field(Primitive):
     
     G = 2.0
-    V = 20.0
+    V = 25.0
     U = 2.0
     DT = 0.05
     F = 0.01
@@ -19,7 +17,9 @@ class Field(Primitive):
         self.Viewer = viewer
         self.Frame = viewer.frame(*self.DIMS)
         self.Lock = RWLock()
-    
+        self.Bubble = Circle(0.0, color=(0.9, 0.9, 0.2))
+        self.Frane.add(self.Bubble, at=(0,0))
+
     @synchronized
     def add(self, geom):
         self.Frame.add(geom)
@@ -29,7 +29,7 @@ class Field(Primitive):
             self.Viewer.render()
         
     def start_speed(self):
-        phi = random.random()*math.pi
+        phi = (random.random()+random.random())*math.pi/2
         v = self.V*(1+random.random())/2
         return v*math.cos(phi), v*math.sin(phi)
         
@@ -58,9 +58,11 @@ class Ball(PyThread):
     def run(self):
         cx, cy = self.Field.Center
         while True:
+            # wait at the center for an event
             self.Gate.wait()
+
+            # jump from the center and fly out
             self.VX, self.VY = self.Field.start_speed()
-            print(self.VX, self.VY)
             dt = self.Field.DT
             self.X += dt * self.VX
             self.Y += dt * self.VY
@@ -74,7 +76,8 @@ class Ball(PyThread):
                 self.update()
 
             self.landed()
-
+            
+            # migrate back to the center
             self.Y = self.VY = 0
             d = self.X - cx
             self.VX = self.Field.U if d < 0 else -self.Field.U
@@ -96,18 +99,18 @@ class Ball(PyThread):
         
 class WhiteBall(Ball):
     
-    Color = (0.8,0.8, 0.1)
+    Color = (0.8,0.8, 0.8)
     
 class BlueBall(Ball):
     
-    Color = (0.1,1.0,0.1)
+    Color = (0.5,0.5,1.0)
     
     def at_center(self):
         self.Gate.pulse()
     
 class RedBall(Ball):
     
-     Color = (1,0.2,0.2)
+     Color = (1.0,0.5,0.5)
     
      def landed(self):
          self.Gate.pulse()

@@ -103,6 +103,7 @@ class BoxTransform(Transform):
         sx, sy = self.Scale = ((X1-X0)/(x1-x0), (Y1-Y0)/(y1-y0))
         self.Translation = (X0 - sx*x0, Y0 - sy*y0)
         self.Matrix = None
+        self.Angle = 0.0
             
     def matrix(self):
         if self.Matrix is None:

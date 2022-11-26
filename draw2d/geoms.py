@@ -9,11 +9,15 @@ RAD2DEG = 180.0/math.pi
 DEG2RAD = math.pi/180.0
 
 class Geom(object):
-    def __init__(self, hidden=False, transient=False, transform=None):
-        self.Color = Color(0,0,0,1.0)
+    def __init__(self, hidden=False, transient=False, transform=None, 
+            color=(0,0,0,1.0), bgcolor=(0,0,0,0.0), width=1):
+        self.Color = Color(*color)
+        self.BGColor = Color(*bgcolor)
+        self.StrokeWidth = width
         self.Hidden = hidden
         self.Transient = transient
         self.Transform = transform or IsoTransform()
+        self.X = self.Y = self.Angle = None
     
     @property
     def x(self):
@@ -55,13 +59,24 @@ class Geom(object):
     def show(self):
         self.Hidden = False
         return self
+        
+    def locate(self, context = None):
+        t = self.Transform
+        if context is not None:
+            t = context * t
+        self.X, self.Y = t * (0., 0.)
+        self.Angle = t.Angle
+        return self.Angle, (self.X, self.Y)
 
-    def render(self, surface, context):
+    def render(self, surface, context = None):
         if not self.Hidden:
             #for attr in reversed(self.attrs):
             #    #print("Geom.render: attr:", attr)
             #    attr.enable()
-            self.render1(surface, context*self.Transform)
+            t = self.Transform
+            if context is not None:
+                t = context * t
+            self.render1(surface, t)
             #for attr in self.attrs:
             #    attr.disable()
                 
@@ -79,11 +94,14 @@ class Geom(object):
     color = set_color
 
     def line_width(self, w):
-        return self.add_attr(LineWidth(w))
+        self.StrokeWidth = w
+        return self
+        
+    width = line_width
 
 class Point(Geom):
-    def __init__(self):
-        Geom.__init__(self)
+    def __init__(self, **params):
+        Geom.__init__(self, **params)
         
     def render1(self, surface, transform):
         x, y = transform * (0, 0)
@@ -92,8 +110,8 @@ class Point(Geom):
         pygame.gfxdraw.pixel(surface, x, y, self.Color)
         
 class FilledPolygon(Geom):
-    def __init__(self, points):
-        Geom.__init__(self)
+    def __init__(self, points, **params):
+        Geom.__init__(self, **params)
         self.Points = points
         
     def render1(self, surface, transform):
@@ -103,32 +121,26 @@ class FilledPolygon(Geom):
         pygame.gfxdraw.aapolygon(surface, points, self.Color)
         
 class PolyLine(Geom):
-    def __init__(self, points, close=False):
-        Geom.__init__(self)
+    def __init__(self, points, close=False, **params):
+        Geom.__init__(self, **params)
         self.Points = points
         self.Close = close
-        self.LineWidth = 1
 
     def render1(self, surface, transform):
         #print("PolyLine.render1: transform:", transform)
         points = [transform*p for p in self.Points]
-        pygame.draw.lines(surface, self.Color, self.Close, points, width=self.LineWidth)
-
-    def line_width(self, x):
-        self.LineWidth = x
-        return self
+        pygame.draw.lines(surface, self.Color, self.Close, points, width=self.StrokeWidth)
 
 class Line(Geom):
-    def __init__(self, start=(0.0, 0.0), end=(0.0, 0.0)):
-        Geom.__init__(self)
+    def __init__(self, start=(0.0, 0.0), end=(0.0, 0.0), **params):
+        Geom.__init__(self, **params)
         self.start = start
         self.end = end
-        self.LineWidth = 1
 
     def render1(self, surface, transforms):
         start = transforms*self.start
         end = transforms*self.end
-        pygame.draw.line(surface, self.Color, start, end, width=self.LineWidth)
+        pygame.draw.line(surface, self.Color, start, end, width=self.StrokeWidth)
 
 class Image(Geom):
     def __init__(self, fname, width, height):
@@ -218,12 +230,12 @@ class Marker(Geom):
         if not self.Hidden:
             t = context * self.Transform
             tx, ty = t.translation
-            angle = t.Angle
-            self.Geom.render1(surface, Transform(angle=anlge, translation=(tx, ty)))
+            angle = self.Transform.Angle
+            self.Geom.render1(surface, IsoTransform(angle=angle, translate=(tx, ty)))
 
 class Circle(Geom):
-    def __init__(self, radius, filled=True, **compat):
-        Geom.__init__(self)
+    def __init__(self, radius, filled=True, **params):
+        Geom.__init__(self, **params)
         self.Radius = radius
         self.Filled = filled
         
@@ -236,14 +248,14 @@ class Circle(Geom):
         pygame.gfxdraw.aacircle(surface, round(c[0]), round(c[1]), round(r), self.Color)
             
         
-def Polygon(v, filled=True):
-    if filled: return FilledPolygon(v)
-    else: return PolyLine(v, True)
+def Polygon(v, filled=True, **params):
+    if filled: return FilledPolygon(v, **params)
+    else: return PolyLine(v, True, **params)
 
-def Rectangle(left, right, top, bottom, filled=True):
+def Rectangle(left, right, top, bottom, filled=True, **params):
     return Polygon([
         (left, bottom), (right, bottom), (right, top), (left, top)
-    ], filled=filled)
+    ], filled=filled, **params)
     
 
     

@@ -25,7 +25,7 @@ class Viewer(object):
     def set_frame(self, left, right, bottom, top):
         scalex = self.width/(right-left)
         scaley = self.height/(top-bottom)
-        self.RootFrame = Frame.linear(left, right, bottom, top, 0, self.width, self.height, 0)
+        self.RootFrame = Frame.box(left, right, bottom, top, 0, self.width, self.height, 0)
         return self.RootFrame
 
     def render(self, return_rgb_array=False, remove_transient=True):
@@ -35,6 +35,9 @@ class Viewer(object):
         if remove_transient:
             self.RootFrame.remove_transient()
         return self.Surface.get_buffer().raw
+
+    def locate(self):
+        self.RootFrame.locate()
 
 
 
