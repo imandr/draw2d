@@ -172,13 +172,14 @@ class Text(Geom):
         if self._Text != text:
             self._Text = text
             self.RenderedImage = None
+        return self
 
     @property
     def Text(self):
         return self._Text
         
     @Text.setter
-    def _set_text(self, text):
+    def Text(self, text):
         self.text(text)
 
     def update(self, angle):
