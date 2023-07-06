@@ -244,9 +244,27 @@ class Circle(Geom):
         c = transform * (0., 0.)
         p = transform * (self.Radius, 0.)
         r = math.sqrt((p[0]-c[0])**2 + (p[1]-c[1])**2)
+        c0 = int(round(c[0]))
+        c1 = int(round(c[1]))
+        r = int(round(r))
         if self.Filled:
-            pygame.gfxdraw.filled_circle(surface, round(c[0]), round(c[1]), round(r), self.Color)
-        pygame.gfxdraw.aacircle(surface, round(c[0]), round(c[1]), round(r), self.Color)
+            #print("Circle.render1:", surface, c0, c1, r, self.Color)
+            pygame.gfxdraw.filled_circle(surface, c0, c1, r, self.Color)
+        pygame.gfxdraw.aacircle(surface, c0, c1, r, self.Color)
+
+    def render1(self, surface, transform):
+        c = transform * (0., 0.)
+        p = transform * (self.Radius, 0.)
+        r = math.sqrt((p[0]-c[0])**2 + (p[1]-c[1])**2)
+        c0 = int(round(c[0]))
+        c1 = int(round(c[1]))
+        r = int(round(r))
+        pygame.gfxdraw.aacircle(surface, c0, c1, r, self.Color)
+        if self.Filled:
+            #print("Circle.render1:", surface, c0, c1, r, self.Color)
+            pygame.gfxdraw.filled_circle(surface, c0, c1, r, self.Color)
+        else:
+            pygame.draw.circle(surface, self.Color, (c0, c1), r, width=self.StrokeWidth)
             
         
 def Polygon(v, filled=True, **params):
